@@ -658,7 +658,7 @@ const renderer = new THREE.WebGLRenderer({
 });
 
 renderer.setPixelRatio(isMobileView ? 1 : Math.min(window.devicePixelRatio, 2));
-const maxGiftScale = isMobileView ? 4.5 : 8.5;
+const maxGiftScale = isMobileView ? 6.5 : 8.5;
 
 
   renderer.setClearColor(0x000000, 0);
