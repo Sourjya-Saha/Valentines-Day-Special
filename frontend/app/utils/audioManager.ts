@@ -6,7 +6,7 @@ class AudioManager {
   private audio: HTMLAudioElement | null = null;
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
-  private dataArray: Uint8Array | null = null;
+  private dataArray: Uint8Array<ArrayBuffer> | null = null;
   private bufferLength: number = 0;
   private isInitialized = false;
   private isPlaying = false;
