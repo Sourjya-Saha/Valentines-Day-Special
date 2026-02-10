@@ -113,12 +113,17 @@ function setupProductOverviewScene(): void {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+const renderer = new THREE.WebGLRenderer({
+  antialias: !isMobile(), // ❗
+  alpha: true,
+  powerPreference: "low-power" // ❗
+});
 
   renderer.setClearColor(0x000000, 0);
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
+ renderer.setPixelRatio(isMobile() ? 1 : Math.min(window.devicePixelRatio, 2));
+
+renderer.shadowMap.enabled = !isMobile();
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const modelContainer = document.querySelector(".model-container");
@@ -193,85 +198,190 @@ function setupProductOverviewScene(): void {
       }
 
       fullHeart.visible = true;
-      scene.add(fullHeart);
-      setupModel(fullHeart);
-      setupProductScrollAnimations(fullHeart);
+    scene.add(fullHeart);
+setupModel(fullHeart);
+
+const controller = createRendererController(renderer, scene, camera);
+
+setupProductScrollAnimations(fullHeart, controller);
+
+// Desktop only continuous rendering
+
+
     }
   );
 
-  function setupProductScrollAnimations(heart: any): void {
-    const scrollTL = gsap.timeline({
-      scrollTrigger: {
-        trigger: ".product-overview",
-        start: "top top",
-        end: "+=500%",
-        pin: true,
-        scrub: 1,
-        anticipatePin: 1,
-        onEnter: () => {
-          const model = document.querySelector(".model-container") as HTMLElement;
-          if (model) {
-            model.style.opacity = "1";
-            model.style.visibility = "visible";
-          }
-        },
-        onLeaveBack: () => {
-          const model = document.querySelector(".model-container") as HTMLElement;
-          if (model) {
-            model.style.opacity = "0";
-            model.style.visibility = "hidden";
-          }
-        }
-      }
-    });
-
-    scrollTL
-      .fromTo(".header-1 h1 .char > span", { y: "100%" }, { y: "0%", stagger: 0.01, duration: 0.6, ease: "power3.out" }, 0)
-      .to(".header-1 h1 .char > span", { xPercent: -150, stagger: 0.01, duration: 1, ease: "power2.inOut" }, 0.4)
-      .fromTo(".circular-mask", { clipPath: "circle(0% at 50% 50%)" }, { clipPath: "circle(80% at 50% 50%)", duration: 0.8, ease: "power2.inOut" }, 0.9)
-      .fromTo(".header-2", { xPercent: 150 }, { xPercent: -150, duration: 1.4, ease: "power1.inOut" }, 1.7)
-      .fromTo(".tooltip:nth-child(1)", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 2.6)
-      .fromTo(".tooltip:nth-child(1) .divider", { scaleX: 0 }, { scaleX: 1, duration: 0.35 }, 2.65)
-      .fromTo(".tooltip:nth-child(1) .icon ion-icon", { y: "125%" }, { y: "0%", duration: 0.4, ease: "power3.out" }, 2.7)
-      .fromTo(".tooltip:nth-child(1) .title .line > span", { y: "125%" }, { y: "0%", stagger: 0.05, duration: 0.4, ease: "power3.out" }, 2.85)
-      .fromTo(".tooltip:nth-child(1) .description .line > span", { y: "125%" }, { y: "0%", stagger: 0.03, duration: 0.4 }, 3.0)
-      .fromTo(".tooltip:nth-child(2)", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35 }, 3.3)
-      .fromTo(".tooltip:nth-child(2) .divider", { scaleX: 0 }, { scaleX: 1, duration: 0.35 }, 3.35)
-      .fromTo(".tooltip:nth-child(2) .icon ion-icon", { y: "125%" }, { y: "0%", duration: 0.4, ease: "power3.out" }, 3.4)
-      .fromTo(".tooltip:nth-child(2) .title .line > span", { y: "125%" }, { y: "0%", stagger: 0.05, duration: 0.4, ease: "power3.out" }, 3.55)
-      .fromTo(".tooltip:nth-child(2) .description .line > span", { y: "125%" }, { y: "0%", stagger: 0.03, duration: 0.4 }, 3.7)
-      .fromTo(".tooltip:nth-child(3)", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35 }, 4.0)
-      .fromTo(".tooltip:nth-child(3) .divider", { scaleX: 0 }, { scaleX: 1, duration: 0.35 }, 4.05)
-      .fromTo(".tooltip:nth-child(3) .icon ion-icon", { y: "125%" }, { y: "0%", duration: 0.4, ease: "power3.out" }, 4.1)
-      .fromTo(".tooltip:nth-child(3) .title .line > span", { y: "125%" }, { y: "0%", stagger: 0.05, duration: 0.4, ease: "power3.out" }, 4.25)
-      .fromTo(".tooltip:nth-child(3) .description .line > span", { y: "125%" }, { y: "0%", stagger: 0.03, duration: 0.4 }, 4.4)
-      .fromTo(".tooltip:nth-child(4)", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35 }, 4.7)
-      .fromTo(".tooltip:nth-child(4) .divider", { scaleX: 0 }, { scaleX: 1, duration: 0.35 }, 4.75)
-      .fromTo(".tooltip:nth-child(4) .icon ion-icon", { y: "125%" }, { y: "0%", duration: 0.4, ease: "power3.out" }, 4.8)
-      .fromTo(".tooltip:nth-child(4) .title .line > span", { y: "125%" }, { y: "0%", stagger: 0.05, duration: 0.4, ease: "power3.out" }, 4.95)
-      .fromTo(".tooltip:nth-child(4) .description .line > span", { y: "125%" }, { y: "0%", stagger: 0.03, duration: 0.4 }, 5.1)
-      .to(".tooltip", { opacity: 0, y: -30, duration: 0.5, ease: "power2.in", stagger: 0.1 }, 5.5)
-      .to(heart.scale, { x: isMobile() ? 4 : 6.5, y: isMobile() ? 4 : 6.5, z: isMobile() ? 4 : 6.5, duration: 2, ease: "power2.inOut" }, 6.0)
-      .to(heart.scale, { x: 0.01, y: 0.01, z: 0.01, duration: 2, ease: "power2.in" }, 8.0);
-
-    ScrollTrigger.create({
-      trigger: ".product-overview",
-      start: "top top",
-      end: "+=500%",
-      scrub: 1,
-      onUpdate: (self: any) => {
-        if (heart && self.progress < 0.6) {
-          heart.rotation.y = Math.PI * 2 * 6 * self.progress;
-        }
-      }
-    });
+function setupProductScrollAnimations(
+  heart: any,
+  controller: {
+    renderOnce: () => void;
+    startContinuous: () => void;
+    stopContinuous: () => void;
   }
+): void {
 
-  function animate(): void {
-    requestAnimationFrame(animate);
+
+const scrollTL = gsap.timeline({
+  scrollTrigger: {
+    trigger: ".product-overview",
+    start: "top top",
+    end: "+=500%",
+    pin: true,
+    scrub: 1,
+    anticipatePin: 1,
+
+    onUpdate: () => {
+      controller.renderOnce();
+    },
+
+    onEnter: () => {
+      const model = document.querySelector(".model-container") as HTMLElement;
+      if (model) {
+        model.style.opacity = "1";
+        model.style.visibility = "visible";
+      }
+      controller.startContinuous(); // ▶ start rendering
+      controller.renderOnce();
+    },
+
+    onLeave: () => {
+      const model = document.querySelector(".model-container") as HTMLElement;
+      if (model) {
+        model.style.opacity = "0";
+        model.style.visibility = "hidden";
+      }
+      controller.stopContinuous(); // ⛔ stop rendering
+    },
+
+    onLeaveBack: () => {
+      const model = document.querySelector(".model-container") as HTMLElement;
+      if (model) {
+        model.style.opacity = "0";
+        model.style.visibility = "hidden";
+      }
+      controller.stopContinuous(); // ⛔ stop rendering
+    }
+  }
+});
+
+
+  scrollTL
+    .fromTo(
+      ".header-1 h1 .char > span",
+      { y: "100%" },
+      { y: "0%", stagger: 0.01, duration: 0.6, ease: "power3.out" },
+      0
+    )
+    .to(
+      ".header-1 h1 .char > span",
+      { xPercent: -150, stagger: 0.01, duration: 1, ease: "power2.inOut" },
+      0.4
+    )
+    .fromTo(
+      ".circular-mask",
+      { clipPath: "circle(0% at 50% 50%)" },
+      { clipPath: "circle(80% at 50% 50%)", duration: 0.8, ease: "power2.inOut" },
+      0.9
+    )
+    .fromTo(
+      ".header-2",
+      { xPercent: 150 },
+      { xPercent: -150, duration: 1.4, ease: "power1.inOut" },
+      1.7
+    )
+
+    // TOOLTIP 1
+    .fromTo(".tooltip:nth-child(1)", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35 }, 2.6)
+    .fromTo(".tooltip:nth-child(1) .divider", { scaleX: 0 }, { scaleX: 1, duration: 0.35 }, 2.65)
+    .fromTo(".tooltip:nth-child(1) .icon ion-icon", { y: "125%" }, { y: "0%", duration: 0.4 }, 2.7)
+    .fromTo(".tooltip:nth-child(1) .title .line > span", { y: "125%" }, { y: "0%", stagger: 0.05, duration: 0.4 }, 2.85)
+    .fromTo(".tooltip:nth-child(1) .description .line > span", { y: "125%" }, { y: "0%", stagger: 0.03, duration: 0.4 }, 3.0)
+
+    // TOOLTIP 2
+    .fromTo(".tooltip:nth-child(2)", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35 }, 3.3)
+    .fromTo(".tooltip:nth-child(2) .divider", { scaleX: 0 }, { scaleX: 1, duration: 0.35 }, 3.35)
+    .fromTo(".tooltip:nth-child(2) .icon ion-icon", { y: "125%" }, { y: "0%", duration: 0.4 }, 3.4)
+    .fromTo(".tooltip:nth-child(2) .title .line > span", { y: "125%" }, { y: "0%", stagger: 0.05, duration: 0.4 }, 3.55)
+    .fromTo(".tooltip:nth-child(2) .description .line > span", { y: "125%" }, { y: "0%", stagger: 0.03, duration: 0.4 }, 3.7)
+
+    // TOOLTIP 3
+    .fromTo(".tooltip:nth-child(3)", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35 }, 4.0)
+    .fromTo(".tooltip:nth-child(3) .divider", { scaleX: 0 }, { scaleX: 1, duration: 0.35 }, 4.05)
+    .fromTo(".tooltip:nth-child(3) .icon ion-icon", { y: "125%" }, { y: "0%", duration: 0.4 }, 4.1)
+    .fromTo(".tooltip:nth-child(3) .title .line > span", { y: "125%" }, { y: "0%", stagger: 0.05, duration: 0.4 }, 4.25)
+    .fromTo(".tooltip:nth-child(3) .description .line > span", { y: "125%" }, { y: "0%", stagger: 0.03, duration: 0.4 }, 4.4)
+
+    // TOOLTIP 4
+    .fromTo(".tooltip:nth-child(4)", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35 }, 4.7)
+    .fromTo(".tooltip:nth-child(4) .divider", { scaleX: 0 }, { scaleX: 1, duration: 0.35 }, 4.75)
+    .fromTo(".tooltip:nth-child(4) .icon ion-icon", { y: "125%" }, { y: "0%", duration: 0.4 }, 4.8)
+    .fromTo(".tooltip:nth-child(4) .title .line > span", { y: "125%" }, { y: "0%", stagger: 0.05, duration: 0.4 }, 4.95)
+    .fromTo(".tooltip:nth-child(4) .description .line > span", { y: "125%" }, { y: "0%", stagger: 0.03, duration: 0.4 }, 5.1)
+
+    .to(".tooltip", { opacity: 0, y: -30, duration: 0.5, stagger: 0.1 }, 5.5)
+ .to(heart.scale, {
+  x: isMobile() ? 4 : 6.5,
+  y: isMobile() ? 4 : 6.5,
+  z: isMobile() ? 4 : 6.5,
+  duration: 2,
+  ease: "power2.inOut"
+}, 6.0)
+
+.to(heart.scale, {
+  x: 0.01,
+  y: 0.01,
+  z: 0.01,
+  duration: 2,
+  ease: "power2.in"
+}, 8.0);
+
+
+  // 🔄 ROTATION — scroll driven, mobile safe
+  ScrollTrigger.create({
+    trigger: ".product-overview",
+    start: "top top",
+    end: "+=500%",
+    scrub: 1,
+    onUpdate: (self: any) => {
+      if (heart && self.progress < 0.6) {
+        heart.rotation.y = Math.PI * 2 * 6 * self.progress;
+        controller.renderOnce();
+      }
+    }
+  });
+}
+
+
+ function createRendererController(
+  renderer: THREE.WebGLRenderer,
+  scene: THREE.Scene,
+  camera: THREE.Camera
+) {
+  let rafId: number | null = null;
+
+  const renderOnce = () => {
     renderer.render(scene, camera);
-  }
-  animate();
+  };
+
+  const startContinuous = () => {
+    if (rafId !== null) return;
+    const loop = () => {
+      rafId = requestAnimationFrame(loop);
+      renderer.render(scene, camera);
+    };
+    loop();
+  };
+
+  const stopContinuous = () => {
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  };
+
+  return { renderOnce, startContinuous, stopContinuous };
+}
+
 
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -284,310 +394,390 @@ function setupProductOverviewScene(): void {
  * Setup Outro Scene
  */
 function setupOutroScene(): void {
+  // 🛑 Mobile safety
+  if (isMobile()) return;
+
   let outroHeart: any = null;
   let outroModelSize: any = null;
 
-  const outroScene = new THREE.Scene();
-  const outroCamera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-  const outroRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+  const scene = new THREE.Scene();
 
-  outroRenderer.setClearColor(0x000000, 0);
-  outroRenderer.setSize(window.innerWidth, window.innerHeight);
-  outroRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  outroRenderer.shadowMap.enabled = true;
-  outroRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
 
-  const outroModelContainer = document.querySelector(".outro-model-container");
-  if (outroModelContainer) {
-    outroModelContainer.appendChild(outroRenderer.domElement);
-  }
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+    powerPreference: "high-performance"
+  });
 
-  // Lighting
-  outroScene.add(new THREE.AmbientLight(0xfce7f3, 1.5));
-  
-  const outroMainLight = new THREE.DirectionalLight(0xf472b6, 2.0);
-  outroMainLight.position.set(5, 5, 5);
-  outroMainLight.castShadow = true;
-  outroScene.add(outroMainLight);
-  
-  const outroFill1 = new THREE.DirectionalLight(0xec4899, 1.2);
-  outroFill1.position.set(-5, 3, -3);
-  outroScene.add(outroFill1);
-  
-  const outroFill2 = new THREE.DirectionalLight(0xfce7f3, 0.8);
-  outroFill2.position.set(0, -3, -5);
-  outroScene.add(outroFill2);
+  renderer.setClearColor(0x000000, 0);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  function setupOutroModel(model: any): void {
-    if (!model || !outroModelSize) return;
+  const container = document.querySelector(".outro-model-container");
+  if (!container) return;
+  container.appendChild(renderer.domElement);
+
+  // 💡 Lighting
+  scene.add(new THREE.AmbientLight(0xfce7f3, 1.5));
+
+  const keyLight = new THREE.DirectionalLight(0xf472b6, 2);
+  keyLight.position.set(5, 5, 5);
+  keyLight.castShadow = true;
+  scene.add(keyLight);
+
+  scene.add(new THREE.DirectionalLight(0xec4899, 1.2));
+  scene.add(new THREE.DirectionalLight(0xfce7f3, 0.8));
+
+  // 🎮 Renderer controller
+  const controller = createRendererController(renderer, scene, camera);
+
+  function setupModel(model: any): void {
     const box = new THREE.Box3().setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
-    model.position.set(-center.x, -center.y, -center.z);
-    model.rotation.set(0, 0, 0);
+    model.position.sub(center);
 
-    const maxDim = Math.max(outroModelSize.x, outroModelSize.y, outroModelSize.z);
-    const fov = outroCamera.fov * (Math.PI / 180);
-    const cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.8;
-    outroCamera.position.set(0, 0, cameraZ);
-    outroCamera.lookAt(0, 0, 0);
+    const size = box.getSize(new THREE.Vector3());
+    outroModelSize = size;
+
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    camera.position.z = (maxDim / Math.tan(fov / 2)) * 1.8;
+    camera.lookAt(0, 0, 0);
   }
 
-  const outroLoader = new GLTFLoader();
-  outroLoader.load("/models/broken_heart.glb", (gltf) => {
-    console.log("✅ Outro broken heart loaded!");
+  // 📦 Load model
+  const loader = new GLTFLoader();
+  loader.load("/models/broken_heart.glb", (gltf) => {
     outroHeart = gltf.scene;
 
     outroHeart.traverse((node: any) => {
       if (node.isMesh && node.material) {
         node.castShadow = true;
         node.receiveShadow = true;
-        if (Array.isArray(node.material)) {
-          node.material.forEach((mat: any) => {
-            mat.metalness = 0.3;
-            mat.roughness = 0.6;
-            mat.needsUpdate = true;
-          });
-        } else {
-          node.material.metalness = 0.3;
-          node.material.roughness = 0.6;
-          node.material.needsUpdate = true;
-        }
+        node.material.metalness = 0.3;
+        node.material.roughness = 0.6;
+        node.material.needsUpdate = true;
       }
     });
 
-    const box = new THREE.Box3().setFromObject(outroHeart);
-    outroModelSize = box.getSize(new THREE.Vector3());
+    scene.add(outroHeart);
+    setupModel(outroHeart);
 
-    if (isMobile()) {
-      outroHeart.scale.set(0.4, 0.4, 0.4);
-    } else {
-      outroHeart.scale.set(1, 1, 1);
-    }
+    setupOutroAnimations(outroHeart);
 
-    outroHeart.visible = true;
-    outroScene.add(outroHeart);
-    setupOutroModel(outroHeart);
-    setupOutroAnimations(outroHeart, outroModelSize);
+    // ▶ Start rendering ONLY when visible
+   
   });
 
-  function setupOutroAnimations(heart: any, modelSize: any): void {
-    const outroInitial = { scale: heart.scale.clone(), y: heart.position.y };
+  function setupOutroAnimations(heart: any): void {
+    const initialScale = heart.scale.clone();
+    const initialY = heart.position.y;
 
-    const outroScrollTL = gsap.timeline({
+    const tl = gsap.timeline({
       scrollTrigger: {
+        id: "outro",
         trigger: ".outro",
         start: "top top",
-        end: "+=100%",
+        end: "+=500%",
         pin: true,
         scrub: 1,
         anticipatePin: 1,
+
+    onUpdate: (self: any) => {
+  const p = self.progress;
+
+  // rotation (unchanged)
+  if (p < 0.6) {
+    heart.rotation.y = Math.PI * 12 * p;
+  } else {
+    heart.rotation.y = 0;
+  }
+
+  // 🔥 SMOOTH ZOOM-IN
+  const zoomStart = 0.45;
+  const zoomEnd = 0.75;
+
+  if (p > zoomStart) {
+    const t = Math.min((p - zoomStart) / (zoomEnd - zoomStart), 1);
+    const scale = gsap.utils.interpolate(1, 8.5, t);
+
+    heart.scale.set(scale, scale, scale);
+    heart.position.y = -(outroModelSize.y * (scale - 1)) / 2;
+  }
+
+  controller.renderOnce();
+},
+
+
+
         onEnter: () => {
-          const productContainer = document.querySelector(".model-container") as HTMLElement;
-          const outroContainer = document.querySelector(".outro-model-container") as HTMLElement;
-          if (productContainer) {
-            productContainer.style.opacity = "0";
-            productContainer.style.visibility = "hidden";
-          }
-          if (outroContainer) {
-            outroContainer.style.opacity = "1";
-            outroContainer.style.visibility = "visible";
-          }
-          if (heart && outroInitial) {
-            gsap.set(heart.scale, { x: outroInitial.scale.x, y: outroInitial.scale.y, z: outroInitial.scale.z });
-            gsap.set(heart.position, { y: outroInitial.y });
-            gsap.set(heart.rotation, { x: 0, y: 0, z: 0 });
-          }
+          toggleContainers(false);
+          resetHeart();
+          controller.startContinuous();
         },
+
         onEnterBack: () => {
-          const productContainer = document.querySelector(".model-container") as HTMLElement;
-          const outroContainer = document.querySelector(".outro-model-container") as HTMLElement;
-          if (productContainer) {
-            productContainer.style.opacity = "0";
-            productContainer.style.visibility = "hidden";
-          }
-          if (outroContainer) {
-            outroContainer.style.opacity = "1";
-            outroContainer.style.visibility = "visible";
-          }
-          if (heart && outroInitial) {
-            gsap.set(heart.scale, { x: outroInitial.scale.x, y: outroInitial.scale.y, z: outroInitial.scale.z });
-            gsap.set(heart.position, { y: outroInitial.y });
-            gsap.set(heart.rotation, { x: 0, y: 0, z: 0 });
+          toggleContainers(false);
+          resetHeart();
+          controller.startContinuous();
+        },
+
+        onLeave: () => {
+  toggleContainers(true);
+  controller.stopContinuous();
+},
+onLeaveBack: () => {
+  toggleContainers(true);
+  controller.stopContinuous();
+}
+
+      }
+    });
+
+    tl.to(".outro-question", { opacity: 1, duration: 0.5 }, 0)
+      .fromTo(
+        ".outro-question h1 .char > span",
+        { y: "100%" },
+        { y: "0%", stagger: 0.01, duration: 0.6 },
+        0
+      )
+      .to(
+        ".outro-question h1 .char > span",
+        { xPercent: -150, stagger: 0.01, duration: 1 },
+        0.4
+      )
+      .to(".outro-question", { opacity: 0, duration: 1 }, 4.5)
+      .to(
+        heart.scale,
+        {
+          x: 6.5,
+          y: 6.5,
+          z: 6.5,
+          duration: 2,
+          ease: "power2.inOut",
+          onUpdate: () => {
+            heart.position.y =
+              -(outroModelSize.y * (heart.scale.y - 1)) / 2;
           }
         },
-        onLeaveBack: () => {
-          const productContainer = document.querySelector(".model-container") as HTMLElement;
-          const outroContainer = document.querySelector(".outro-model-container") as HTMLElement;
-          if (productContainer) {
-            productContainer.style.opacity = "1";
-            productContainer.style.visibility = "visible";
+        5
+      )
+      .to(
+        heart.scale,
+        {
+          x: initialScale.x,
+          y: initialScale.y,
+          z: initialScale.z,
+          duration: 1.5
+        },
+        7
+      )
+      .to(
+        ".outro-final-message",
+        {
+          opacity: 1,
+          duration: 1,
+          onComplete: () => {
+            document
+              .querySelector(".outro-final-message")
+              ?.classList.add("active");
+            initNoButtonEscape();
           }
-          if (outroContainer) {
-            outroContainer.style.opacity = "0";
-            outroContainer.style.visibility = "hidden";
-          }
-        }
-      }
-    });
+        },
+        8.5
+      );
 
-    outroScrollTL
-      .to(".outro-question", { opacity: 1, duration: 0.5, ease: "power2.out" }, 0)
-      .fromTo(".outro-question h1 .char > span", { y: "100%" }, { y: "0%", stagger: 0.01, duration: 0.6, ease: "power3.out" }, 0)
-      .to(".outro-question h1 .char > span", { xPercent: -150, stagger: 0.01, duration: 1, ease: "power2.inOut" }, 0.4)
-      .to(".outro-question", { opacity: 0, duration: 1, ease: "power2.in" }, 4.5)
-      .to(heart.scale, {
-        x: isMobile() ? 4.5 : 6.5,
-        y: isMobile() ? 4.5 : 6.5,
-        z: isMobile() ? 4.5 : 6.5,
-        duration: 2,
-        ease: "power2.inOut",
-        onUpdate: () => { heart.position.y = -(modelSize.y * (heart.scale.y - 1)) / 2; }
-      }, 5.0)
-      .to(heart.scale, { x: outroInitial.scale.x, y: outroInitial.scale.y, z: outroInitial.scale.z, duration: 1.5, ease: "power2.inOut" }, 7.0)
-      .to(".outro-final-message", {
-        opacity: 1,
-        duration: 1,
-        ease: "power2.out",
-        onComplete: () => {
-          const finalMessage = document.querySelector(".outro-final-message");
-          if (finalMessage) finalMessage.classList.add("active");
-          initNoButtonEscape();
-        }
-      }, 8.5);
+    function resetHeart(): void {
+      gsap.set(heart.scale, initialScale);
+      gsap.set(heart.position, { y: initialY });
+      gsap.set(heart.rotation, { x: 0, y: 0, z: 0 });
+    }
 
-    ScrollTrigger.create({
-      trigger: ".outro",
-      start: "top top",
-      end: "+=100%",
-      scrub: 1,
-      onUpdate: (self: any) => {
-        if (heart && self.progress < 0.6) {
-          heart.rotation.y = Math.PI * 2 * 6 * self.progress;
-        } else if (heart) {
-          heart.rotation.y = 0;
-        }
+    function toggleContainers(showProduct: boolean): void {
+      const product = document.querySelector(".model-container") as HTMLElement;
+      const outro = document.querySelector(".outro-model-container") as HTMLElement;
+
+      if (product) {
+        product.style.opacity = showProduct ? "1" : "0";
+        product.style.visibility = showProduct ? "visible" : "hidden";
       }
-    });
+
+      if (outro) {
+        outro.style.opacity = showProduct ? "0" : "1";
+        outro.style.visibility = showProduct ? "hidden" : "visible";
+      }
+    }
   }
 
-  function animate(): void {
-    requestAnimationFrame(animate);
-    outroRenderer.render(outroScene, outroCamera);
-  }
-  animate();
-
+  // 🔄 Resize safety (RAF-friendly)
   window.addEventListener("resize", () => {
-    outroCamera.aspect = window.innerWidth / window.innerHeight;
-    outroCamera.updateProjectionMatrix();
-    outroRenderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    controller.renderOnce();
   });
 }
+
 
 /**
  * Setup Gift Scene
  */
 function setupGiftScene(): void {
-  const giftScene = new THREE.Scene();
-  const giftCamera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-  const giftRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+  // 🛑 Mobile safety (same strategy as Outro)
+  if (isMobile()) return;
 
-  giftRenderer.setClearColor(0x000000, 0);
-  giftRenderer.setSize(window.innerWidth, window.innerHeight);
-  giftRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  let giftModel: any = null;
 
-  const giftContainer = document.querySelector(".gift-model-container");
-  if (giftContainer) {
-    giftContainer.appendChild(giftRenderer.domElement);
-    (giftContainer as HTMLElement).style.opacity = "0";
-    (giftContainer as HTMLElement).style.visibility = "hidden";
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+    powerPreference: "high-performance"
+  });
+
+  renderer.setClearColor(0x000000, 0);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const container = document.querySelector(".gift-model-container") as HTMLElement;
+  if (container) {
+    container.appendChild(renderer.domElement);
+    container.style.opacity = "0";
+    container.style.visibility = "hidden";
   }
 
-  giftScene.add(new THREE.AmbientLight(0xfce7f3, 1.5));
-  const giftKey = new THREE.DirectionalLight(0xf472b6, 2);
-  giftKey.position.set(5, 5, 5);
-  giftScene.add(giftKey);
-  giftScene.add(new THREE.DirectionalLight(0xec4899, 1.2));
-  giftScene.add(new THREE.DirectionalLight(0xfce7f3, 0.8));
+  // 💡 Lighting
+  scene.add(new THREE.AmbientLight(0xfce7f3, 1.5));
 
-  const giftLoader = new GLTFLoader();
-  giftLoader.load("/models/gift.glb", (gltf) => {
+  const keyLight = new THREE.DirectionalLight(0xf472b6, 2);
+  keyLight.position.set(5, 5, 5);
+  scene.add(keyLight);
+
+  scene.add(new THREE.DirectionalLight(0xec4899, 1.2));
+  scene.add(new THREE.DirectionalLight(0xfce7f3, 0.8));
+
+  // 🎮 Renderer controller
+  const controller = createRendererController(renderer, scene, camera);
+
+  function setupModel(model: any) {
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    model.position.sub(center);
+
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    camera.position.z = (maxDim / Math.tan(fov / 2)) * 1.8;
+    camera.lookAt(0, 0, 0);
+  }
+
+  // 📦 Load model
+  const loader = new GLTFLoader();
+  loader.load("/models/gift.glb", (gltf) => {
     giftModel = gltf.scene;
 
-    giftModel.traverse((n: any) => {
-      if (n.isMesh && n.material) {
-        n.material.metalness = 0.4;
-        n.material.roughness = 0.4;
+    giftModel.traverse((node: any) => {
+      if (node.isMesh && node.material) {
+        node.material.metalness = 0.4;
+        node.material.roughness = 0.4;
+        node.material.needsUpdate = true;
       }
     });
 
-    const box = new THREE.Box3().setFromObject(giftModel);
-    const giftSize = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    giftModel.position.set(-center.x, -center.y, -center.z);
-
-    const maxDim = Math.max(giftSize.x, giftSize.y, giftSize.z);
-    const fov = giftCamera.fov * Math.PI / 180;
-    giftCamera.position.z = (maxDim / Math.tan(fov / 2)) * 1.8;
-    giftCamera.lookAt(0, 0, 0);
-
-    giftScene.add(giftModel);
-    setupYesButtonInteraction();
+    scene.add(giftModel);
+    setupModel(giftModel);
+    controller.renderOnce(); // first paint
   });
 
-  function animate(): void {
-    requestAnimationFrame(animate);
-    giftRenderer.render(giftScene, giftCamera);
-  }
-  animate();
-
-  window.addEventListener("resize", () => {
-    giftCamera.aspect = window.innerWidth / window.innerHeight;
-    giftCamera.updateProjectionMatrix();
-    giftRenderer.setSize(window.innerWidth, window.innerHeight);
-  });
-
+  // 🎁 YES button interaction
   function setupYesButtonInteraction(): void {
     const yesBtn = document.querySelector(".btn-yes");
-    if (yesBtn) {
-      yesBtn.addEventListener("click", () => {
-        if (!giftModel) return;
+    if (!yesBtn) return;
 
-        ScrollTrigger.getAll().forEach((st: any) => st.kill());
+    yesBtn.addEventListener("click", () => {
+      if (!giftModel) return;
 
-        const outroContainer = document.querySelector(".outro-model-container") as HTMLElement;
-        const giftContainer = document.querySelector(".gift-model-container") as HTMLElement;
+      ScrollTrigger.getAll().forEach((st: any) => st.kill());
 
-        gsap.to(outroContainer, {
+      const outro = document.querySelector(".outro-model-container") as HTMLElement;
+      const gift = document.querySelector(".gift-model-container") as HTMLElement;
+
+      if (outro) {
+        gsap.to(outro, {
           opacity: 0,
           duration: 0.5,
-          onComplete: () => { outroContainer.style.visibility = "hidden"; }
+          onComplete: () => (outro.style.visibility = "hidden")
         });
+      }
 
-        giftContainer.style.visibility = "visible";
-        gsap.to(giftContainer, { opacity: 1, duration: 0.8, ease: "power2.out" });
+      if (gift) {
+        gift.style.visibility = "visible";
+        gsap.to(gift, { opacity: 1, duration: 0.8, ease: "power2.out" });
+      }
 
-        const baseScale = isMobile() ? 0.8 : 1;
-        gsap.set(giftModel.scale, { x: baseScale, y: baseScale, z: baseScale });
-        gsap.set(giftModel.rotation, { x: 0, y: 0, z: 0 });
+      const baseScale = 1;
+      gsap.set(giftModel.scale, { x: baseScale, y: baseScale, z: baseScale });
+      gsap.set(giftModel.rotation, { x: 0, y: 0, z: 0 });
 
-        const idleSpin = gsap.to(giftModel.rotation, { y: "+=0.5", duration: 2, repeat: -1, yoyo: true, ease: "sine.inOut" });
+      controller.startContinuous();
 
-        gsap.timeline({
-          onStart: () => { idleSpin.kill(); },
-          onComplete: () => { window.location.href = "/gift"; }
-        })
-        .to(giftModel.rotation, { y: Math.PI * 4, duration: 3, ease: "none" })
-        .to(giftModel.scale, {
-          x: isMobile() ? 6.5 : 8.5,
-          y: isMobile() ? 6.5 : 8.5,
-          z: isMobile() ? 6.5 : 8.5,
-          duration: 2,
-          ease: "power2.inOut"
-        }, "-=1");
+      const idleSpin = gsap.to(giftModel.rotation, {
+        y: "+=0.5",
+        duration: 2,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut"
       });
-    }
+
+      gsap.timeline({
+        onStart: () => idleSpin.kill(),
+        onUpdate: () => controller.renderOnce(),
+        onComplete: () => {
+          controller.stopContinuous();
+          window.location.href = "/gift";
+        }
+      })
+        .to(giftModel.rotation, { y: Math.PI * 4, duration: 3, ease: "none" })
+        .to(
+          giftModel.scale,
+          {
+            x: 8.5,
+            y: 8.5,
+            z: 8.5,
+            duration: 2,
+            ease: "power2.inOut"
+          },
+          "-=1"
+        );
+    });
   }
+
+  setupYesButtonInteraction();
+
+  // 🔄 Resize safety
+  window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    controller.renderOnce();
+  });
 }
+
 
 /**
  * No button escape
@@ -645,18 +835,26 @@ function initAudioVisualizer(): void {
   const ctx = canvas.getContext('2d')!;
   let animationId: number;
 
-  function resizeCanvas() {
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * window.devicePixelRatio;
-    canvas.height = rect.height * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  }
+ function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // 🔥 REQUIRED
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+}
+
 
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
 
   // Initialize audio context through audioManager
-  audioManager.initAudioContext();
+window.addEventListener(
+  "touchstart",
+  () => audioManager.initAudioContext(),
+  { once: true }
+);
+
 
   function drawVisualizer() {
     animationId = requestAnimationFrame(drawVisualizer);
@@ -815,3 +1013,34 @@ function initAudioVisualizer(): void {
     });
   }
 }
+
+
+// keep ONLY this one at the very bottom
+function createRendererController(
+  renderer: THREE.WebGLRenderer,
+  scene: THREE.Scene,
+  camera: THREE.Camera
+) {
+  let rafId: number | null = null;
+
+  const renderOnce = () => renderer.render(scene, camera);
+
+  const startContinuous = () => {
+    if (rafId !== null) return;
+    const loop = () => {
+      rafId = requestAnimationFrame(loop);
+      renderer.render(scene, camera);
+    };
+    loop();
+  };
+
+  const stopContinuous = () => {
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  };
+
+  return { renderOnce, startContinuous, stopContinuous };
+}
+
