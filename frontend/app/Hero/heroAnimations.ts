@@ -364,15 +364,27 @@ function setupGiftScene(): void {
     giftCamera.position.z = 5;
 
     // "Yes" Button Logic
-    document.querySelector(".btn-yes")?.addEventListener("click", () => {
-      ScrollTrigger.getAll().forEach(st => st.kill());
-      gsap.to(".outro-model-container", { opacity: 0, autoAlpha: 0 });
-      gsap.set(".gift-model-container", { visibility: "visible", opacity: 1 });
-      
-      const tl = gsap.timeline({ onComplete: () => window.location.href = "/gift" });
-      tl.to(giftModel.rotation, { y: Math.PI * 4, duration: 3, ease: "none" })
-        .to(giftModel.scale, { x: 8, y: 8, z: 8, duration: 2 }, "-=1");
-    });
+document.querySelector(".btn-yes")?.addEventListener("click", () => {
+  ScrollTrigger.getAll().forEach((st: any) => st.kill());
+
+  gsap.to(".outro-model-container", { opacity: 0, autoAlpha: 0 });
+  gsap.set(".gift-model-container", { visibility: "visible", opacity: 1 });
+
+  const tl = gsap.timeline({
+    onComplete: () => (window.location.href = "/gift"),
+  });
+
+  tl.to(giftModel.rotation, {
+    y: Math.PI * 4,
+    duration: 3,
+    ease: "none",
+  }).to(
+    giftModel.scale,
+    { x: 8, y: 8, z: 8, duration: 2 },
+    "-=1"
+  );
+});
+
   });
 
   function animate() {
