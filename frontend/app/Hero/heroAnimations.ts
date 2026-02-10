@@ -10,7 +10,7 @@ declare const ScrollTrigger: any;
 
 // Utility function
 function isMobile(): boolean {
-  return window.innerWidth <= 600;
+  return typeof window !== "undefined" && window.innerWidth <= 600;
 }
 
 // Global variable for gift model
@@ -20,7 +20,6 @@ let giftModel: any = null;
  * Main initialization function
  */
 export function initHeroAnimations(): any {
-  // Check if GSAP is loaded
   if (typeof gsap === "undefined") {
     console.error("❌ GSAP not loaded!");
     return null;
@@ -28,13 +27,9 @@ export function initHeroAnimations(): any {
 
   console.log("🚀 Hero animations initialized");
 
-  // Register GSAP plugins
   gsap.registerPlugin(ScrollTrigger);
 
-  // Add tooltip click handlers
   setupTooltipInteractions();
-
-  // Split text for animations
   splitAllText();
 
   // Initialize Three.js scenes
@@ -45,7 +40,11 @@ export function initHeroAnimations(): any {
   // Initialize audio visualizer
   initAudioVisualizer();
 
-  // Return GSAP context for cleanup
+  // Force a refresh after a short delay to ensure DOM calculations are correct
+  setTimeout(() => {
+    ScrollTrigger.refresh();
+  }, 500);
+
   return gsap.context(() => {});
 }
 
@@ -92,15 +91,11 @@ function splitText(selector: string, type: 'chars' | 'lines' = 'chars'): void {
   });
 }
 
-/**
- * Split all text elements
- */
 function splitAllText(): void {
   splitText(".header-1 h1", "chars");
   splitText(".tooltip .title h2", "lines");
   splitText(".tooltip .description p", "lines");
   splitText(".outro-question h1", "chars");
-  
   console.log("✅ Text split complete");
 }
 
@@ -124,12 +119,10 @@ function setupProductOverviewScene(): void {
   const modelContainer = document.querySelector(".model-container");
   if (modelContainer) {
     modelContainer.appendChild(renderer.domElement);
-    console.log("✅ Canvas added (product overview)");
   }
 
-  // Lighting
+  // Lighting - Preserving your specific hex values
   scene.add(new THREE.AmbientLight(0xfce7f3, 1.5));
-  
   const mainLight = new THREE.DirectionalLight(0xf472b6, 2.0);
   mainLight.position.set(5, 5, 5);
   mainLight.castShadow = true;
@@ -143,61 +136,40 @@ function setupProductOverviewScene(): void {
   fillLight2.position.set(0, -3, -5);
   scene.add(fillLight2);
 
-  function setupModel(model: any): void {
-    if (!model || !modelSize) return;
-    const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
-    model.position.set(-center.x, -center.y, -center.z);
-    model.rotation.set(0, 0, 0);
-
-    const maxDim = Math.max(modelSize.x, modelSize.y, modelSize.z);
-    const fov = camera.fov * (Math.PI / 180);
-    const cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.8;
-    camera.position.set(0, 0, cameraZ);
-    camera.lookAt(0, 0, 0);
-  }
-
-  // Load heart model
   const loader = new GLTFLoader();
-  loader.load(
-    "/models/heart.glb",
-    (gltf) => {
-      console.log("✅ FULL HEART LOADED!");
-      fullHeart = gltf.scene;
+  loader.load("/models/heart.glb", (gltf) => {
+    fullHeart = gltf.scene;
 
-      fullHeart.traverse((node: any) => {
-        if (node.isMesh && node.material) {
-          node.castShadow = true;
-          node.receiveShadow = true;
-          if (Array.isArray(node.material)) {
-            node.material.forEach((mat: any) => {
-              mat.metalness = 0.3;
-              mat.roughness = 0.6;
-              mat.needsUpdate = true;
-            });
-          } else {
-            node.material.metalness = 0.3;
-            node.material.roughness = 0.6;
-            node.material.needsUpdate = true;
-          }
-        }
-      });
-
-      const box = new THREE.Box3().setFromObject(fullHeart);
-      modelSize = box.getSize(new THREE.Vector3());
-
-      if (isMobile()) {
-        fullHeart.scale.set(0.4, 0.4, 0.4);
-      } else {
-        fullHeart.scale.set(1, 1, 1);
+    fullHeart.traverse((node: any) => {
+      if (node.isMesh && node.material) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach((mat: any) => {
+          mat.metalness = 0.3;
+          mat.roughness = 0.6;
+          mat.needsUpdate = true;
+        });
       }
+    });
 
-      fullHeart.visible = true;
-      scene.add(fullHeart);
-      setupModel(fullHeart);
-      setupProductScrollAnimations(fullHeart);
-    }
-  );
+    const box = new THREE.Box3().setFromObject(fullHeart);
+    modelSize = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    fullHeart.position.set(-center.x, -center.y, -center.z);
+
+    const scaleVal = isMobile() ? 0.4 : 1;
+    fullHeart.scale.set(scaleVal, scaleVal, scaleVal);
+
+    scene.add(fullHeart);
+
+    const fov = camera.fov * (Math.PI / 180);
+    const maxDim = Math.max(modelSize.x, modelSize.y, modelSize.z);
+    camera.position.z = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.8;
+    camera.lookAt(0, 0, 0);
+
+    setupProductScrollAnimations(fullHeart);
+  });
 
   function setupProductScrollAnimations(heart: any): void {
     const scrollTL = gsap.timeline({
@@ -208,48 +180,42 @@ function setupProductOverviewScene(): void {
         pin: true,
         scrub: 1,
         anticipatePin: 1,
-        onEnter: () => {
-          const model = document.querySelector(".model-container") as HTMLElement;
-          if (model) {
-            model.style.opacity = "1";
-            model.style.visibility = "visible";
-          }
-        },
-        onLeaveBack: () => {
-          const model = document.querySelector(".model-container") as HTMLElement;
-          if (model) {
-            model.style.opacity = "0";
-            model.style.visibility = "hidden";
-          }
-        }
+        onEnter: () => gsap.to(".model-container", { opacity: 1, autoAlpha: 1 }),
+        onLeaveBack: () => gsap.to(".model-container", { opacity: 0, autoAlpha: 0 })
       }
     });
 
+    // Detailed Timeline Sequence
     scrollTL
       .fromTo(".header-1 h1 .char > span", { y: "100%" }, { y: "0%", stagger: 0.01, duration: 0.6, ease: "power3.out" }, 0)
       .to(".header-1 h1 .char > span", { xPercent: -150, stagger: 0.01, duration: 1, ease: "power2.inOut" }, 0.4)
       .fromTo(".circular-mask", { clipPath: "circle(0% at 50% 50%)" }, { clipPath: "circle(80% at 50% 50%)", duration: 0.8, ease: "power2.inOut" }, 0.9)
       .fromTo(".header-2", { xPercent: 150 }, { xPercent: -150, duration: 1.4, ease: "power1.inOut" }, 1.7)
+      // Tooltip 1
       .fromTo(".tooltip:nth-child(1)", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 2.6)
       .fromTo(".tooltip:nth-child(1) .divider", { scaleX: 0 }, { scaleX: 1, duration: 0.35 }, 2.65)
       .fromTo(".tooltip:nth-child(1) .icon ion-icon", { y: "125%" }, { y: "0%", duration: 0.4, ease: "power3.out" }, 2.7)
       .fromTo(".tooltip:nth-child(1) .title .line > span", { y: "125%" }, { y: "0%", stagger: 0.05, duration: 0.4, ease: "power3.out" }, 2.85)
       .fromTo(".tooltip:nth-child(1) .description .line > span", { y: "125%" }, { y: "0%", stagger: 0.03, duration: 0.4 }, 3.0)
+      // Tooltip 2
       .fromTo(".tooltip:nth-child(2)", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35 }, 3.3)
       .fromTo(".tooltip:nth-child(2) .divider", { scaleX: 0 }, { scaleX: 1, duration: 0.35 }, 3.35)
       .fromTo(".tooltip:nth-child(2) .icon ion-icon", { y: "125%" }, { y: "0%", duration: 0.4, ease: "power3.out" }, 3.4)
       .fromTo(".tooltip:nth-child(2) .title .line > span", { y: "125%" }, { y: "0%", stagger: 0.05, duration: 0.4, ease: "power3.out" }, 3.55)
       .fromTo(".tooltip:nth-child(2) .description .line > span", { y: "125%" }, { y: "0%", stagger: 0.03, duration: 0.4 }, 3.7)
+      // Tooltip 3
       .fromTo(".tooltip:nth-child(3)", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35 }, 4.0)
       .fromTo(".tooltip:nth-child(3) .divider", { scaleX: 0 }, { scaleX: 1, duration: 0.35 }, 4.05)
       .fromTo(".tooltip:nth-child(3) .icon ion-icon", { y: "125%" }, { y: "0%", duration: 0.4, ease: "power3.out" }, 4.1)
       .fromTo(".tooltip:nth-child(3) .title .line > span", { y: "125%" }, { y: "0%", stagger: 0.05, duration: 0.4, ease: "power3.out" }, 4.25)
       .fromTo(".tooltip:nth-child(3) .description .line > span", { y: "125%" }, { y: "0%", stagger: 0.03, duration: 0.4 }, 4.4)
+      // Tooltip 4
       .fromTo(".tooltip:nth-child(4)", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35 }, 4.7)
       .fromTo(".tooltip:nth-child(4) .divider", { scaleX: 0 }, { scaleX: 1, duration: 0.35 }, 4.75)
       .fromTo(".tooltip:nth-child(4) .icon ion-icon", { y: "125%" }, { y: "0%", duration: 0.4, ease: "power3.out" }, 4.8)
       .fromTo(".tooltip:nth-child(4) .title .line > span", { y: "125%" }, { y: "0%", stagger: 0.05, duration: 0.4, ease: "power3.out" }, 4.95)
       .fromTo(".tooltip:nth-child(4) .description .line > span", { y: "125%" }, { y: "0%", stagger: 0.03, duration: 0.4 }, 5.1)
+      // Exit animations
       .to(".tooltip", { opacity: 0, y: -30, duration: 0.5, ease: "power2.in", stagger: 0.1 }, 5.5)
       .to(heart.scale, { x: isMobile() ? 4 : 6.5, y: isMobile() ? 4 : 6.5, z: isMobile() ? 4 : 6.5, duration: 2, ease: "power2.inOut" }, 6.0)
       .to(heart.scale, { x: 0.01, y: 0.01, z: 0.01, duration: 2, ease: "power2.in" }, 8.0);
@@ -261,7 +227,7 @@ function setupProductOverviewScene(): void {
       scrub: 1,
       onUpdate: (self: any) => {
         if (heart && self.progress < 0.6) {
-          heart.rotation.y = Math.PI * 2 * 6 * self.progress;
+          heart.rotation.y = Math.PI * 12 * self.progress;
         }
       }
     });
@@ -272,12 +238,6 @@ function setupProductOverviewScene(): void {
     renderer.render(scene, camera);
   }
   animate();
-
-  window.addEventListener("resize", () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
 }
 
 /**
@@ -294,79 +254,40 @@ function setupOutroScene(): void {
   outroRenderer.setClearColor(0x000000, 0);
   outroRenderer.setSize(window.innerWidth, window.innerHeight);
   outroRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  outroRenderer.shadowMap.enabled = true;
-  outroRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  const outroModelContainer = document.querySelector(".outro-model-container");
-  if (outroModelContainer) {
-    outroModelContainer.appendChild(outroRenderer.domElement);
-  }
+  const outroContainer = document.querySelector(".outro-model-container");
+  if (outroContainer) outroContainer.appendChild(outroRenderer.domElement);
 
-  // Lighting
   outroScene.add(new THREE.AmbientLight(0xfce7f3, 1.5));
-  
   const outroMainLight = new THREE.DirectionalLight(0xf472b6, 2.0);
   outroMainLight.position.set(5, 5, 5);
-  outroMainLight.castShadow = true;
   outroScene.add(outroMainLight);
-  
-  const outroFill1 = new THREE.DirectionalLight(0xec4899, 1.2);
-  outroFill1.position.set(-5, 3, -3);
-  outroScene.add(outroFill1);
-  
-  const outroFill2 = new THREE.DirectionalLight(0xfce7f3, 0.8);
-  outroFill2.position.set(0, -3, -5);
-  outroScene.add(outroFill2);
-
-  function setupOutroModel(model: any): void {
-    if (!model || !outroModelSize) return;
-    const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
-    model.position.set(-center.x, -center.y, -center.z);
-    model.rotation.set(0, 0, 0);
-
-    const maxDim = Math.max(outroModelSize.x, outroModelSize.y, outroModelSize.z);
-    const fov = outroCamera.fov * (Math.PI / 180);
-    const cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.8;
-    outroCamera.position.set(0, 0, cameraZ);
-    outroCamera.lookAt(0, 0, 0);
-  }
+  outroScene.add(new THREE.DirectionalLight(0xec4899, 1.2)).position.set(-5, 3, -3);
+  outroScene.add(new THREE.DirectionalLight(0xfce7f3, 0.8)).position.set(0, -3, -5);
 
   const outroLoader = new GLTFLoader();
   outroLoader.load("/models/broken_heart.glb", (gltf) => {
-    console.log("✅ Outro broken heart loaded!");
     outroHeart = gltf.scene;
-
     outroHeart.traverse((node: any) => {
       if (node.isMesh && node.material) {
-        node.castShadow = true;
-        node.receiveShadow = true;
-        if (Array.isArray(node.material)) {
-          node.material.forEach((mat: any) => {
-            mat.metalness = 0.3;
-            mat.roughness = 0.6;
-            mat.needsUpdate = true;
-          });
-        } else {
-          node.material.metalness = 0.3;
-          node.material.roughness = 0.6;
-          node.material.needsUpdate = true;
-        }
+        const mat = Array.isArray(node.material) ? node.material : [node.material];
+        mat.forEach((m: any) => { m.metalness = 0.3; m.roughness = 0.6; });
       }
     });
 
     const box = new THREE.Box3().setFromObject(outroHeart);
     outroModelSize = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    outroHeart.position.set(-center.x, -center.y, -center.z);
 
-    if (isMobile()) {
-      outroHeart.scale.set(0.4, 0.4, 0.4);
-    } else {
-      outroHeart.scale.set(1, 1, 1);
-    }
-
-    outroHeart.visible = true;
+    const scale = isMobile() ? 0.4 : 1;
+    outroHeart.scale.set(scale, scale, scale);
     outroScene.add(outroHeart);
-    setupOutroModel(outroHeart);
+
+    const fov = outroCamera.fov * (Math.PI / 180);
+    outroCamera.position.z = Math.abs(outroModelSize.y / 2 / Math.tan(fov / 2)) * 1.8;
+    outroCamera.lookAt(0, 0, 0);
+
     setupOutroAnimations(outroHeart, outroModelSize);
   });
 
@@ -380,94 +301,37 @@ function setupOutroScene(): void {
         end: "+=100%",
         pin: true,
         scrub: 1,
-        anticipatePin: 1,
         onEnter: () => {
-          const productContainer = document.querySelector(".model-container") as HTMLElement;
-          const outroContainer = document.querySelector(".outro-model-container") as HTMLElement;
-          if (productContainer) {
-            productContainer.style.opacity = "0";
-            productContainer.style.visibility = "hidden";
-          }
-          if (outroContainer) {
-            outroContainer.style.opacity = "1";
-            outroContainer.style.visibility = "visible";
-          }
-          if (heart && outroInitial) {
-            gsap.set(heart.scale, { x: outroInitial.scale.x, y: outroInitial.scale.y, z: outroInitial.scale.z });
-            gsap.set(heart.position, { y: outroInitial.y });
-            gsap.set(heart.rotation, { x: 0, y: 0, z: 0 });
-          }
-        },
-        onEnterBack: () => {
-          const productContainer = document.querySelector(".model-container") as HTMLElement;
-          const outroContainer = document.querySelector(".outro-model-container") as HTMLElement;
-          if (productContainer) {
-            productContainer.style.opacity = "0";
-            productContainer.style.visibility = "hidden";
-          }
-          if (outroContainer) {
-            outroContainer.style.opacity = "1";
-            outroContainer.style.visibility = "visible";
-          }
-          if (heart && outroInitial) {
-            gsap.set(heart.scale, { x: outroInitial.scale.x, y: outroInitial.scale.y, z: outroInitial.scale.z });
-            gsap.set(heart.position, { y: outroInitial.y });
-            gsap.set(heart.rotation, { x: 0, y: 0, z: 0 });
-          }
+          gsap.set(".model-container", { opacity: 0, autoAlpha: 0 });
+          gsap.set(".outro-model-container", { opacity: 1, autoAlpha: 1 });
         },
         onLeaveBack: () => {
-          const productContainer = document.querySelector(".model-container") as HTMLElement;
-          const outroContainer = document.querySelector(".outro-model-container") as HTMLElement;
-          if (productContainer) {
-            productContainer.style.opacity = "1";
-            productContainer.style.visibility = "visible";
-          }
-          if (outroContainer) {
-            outroContainer.style.opacity = "0";
-            outroContainer.style.visibility = "hidden";
-          }
+          gsap.set(".model-container", { opacity: 1, autoAlpha: 1 });
+          gsap.set(".outro-model-container", { opacity: 0, autoAlpha: 0 });
         }
       }
     });
 
     outroScrollTL
-      .to(".outro-question", { opacity: 1, duration: 0.5, ease: "power2.out" }, 0)
-      .fromTo(".outro-question h1 .char > span", { y: "100%" }, { y: "0%", stagger: 0.01, duration: 0.6, ease: "power3.out" }, 0)
-      .to(".outro-question h1 .char > span", { xPercent: -150, stagger: 0.01, duration: 1, ease: "power2.inOut" }, 0.4)
-      .to(".outro-question", { opacity: 0, duration: 1, ease: "power2.in" }, 4.5)
+      .to(".outro-question", { opacity: 1, duration: 0.5 }, 0)
+      .fromTo(".outro-question h1 .char > span", { y: "100%" }, { y: "0%", stagger: 0.01, duration: 0.6 }, 0)
+      .to(".outro-question h1 .char > span", { xPercent: -150, stagger: 0.01, duration: 1 }, 0.4)
+      .to(".outro-question", { opacity: 0, duration: 1 }, 4.5)
       .to(heart.scale, {
         x: isMobile() ? 4.5 : 6.5,
         y: isMobile() ? 4.5 : 6.5,
         z: isMobile() ? 4.5 : 6.5,
         duration: 2,
-        ease: "power2.inOut",
         onUpdate: () => { heart.position.y = -(modelSize.y * (heart.scale.y - 1)) / 2; }
       }, 5.0)
-      .to(heart.scale, { x: outroInitial.scale.x, y: outroInitial.scale.y, z: outroInitial.scale.z, duration: 1.5, ease: "power2.inOut" }, 7.0)
+      .to(heart.scale, { x: outroInitial.scale.x, y: outroInitial.scale.y, z: outroInitial.scale.z, duration: 1.5 }, 7.0)
       .to(".outro-final-message", {
-        opacity: 1,
-        duration: 1,
-        ease: "power2.out",
+        opacity: 1, duration: 1,
         onComplete: () => {
-          const finalMessage = document.querySelector(".outro-final-message");
-          if (finalMessage) finalMessage.classList.add("active");
+          document.querySelector(".outro-final-message")?.classList.add("active");
           initNoButtonEscape();
         }
       }, 8.5);
-
-    ScrollTrigger.create({
-      trigger: ".outro",
-      start: "top top",
-      end: "+=100%",
-      scrub: 1,
-      onUpdate: (self: any) => {
-        if (heart && self.progress < 0.6) {
-          heart.rotation.y = Math.PI * 2 * 6 * self.progress;
-        } else if (heart) {
-          heart.rotation.y = 0;
-        }
-      }
-    });
   }
 
   function animate(): void {
@@ -475,12 +339,6 @@ function setupOutroScene(): void {
     outroRenderer.render(outroScene, outroCamera);
   }
   animate();
-
-  window.addEventListener("resize", () => {
-    outroCamera.aspect = window.innerWidth / window.innerHeight;
-    outroCamera.updateProjectionMatrix();
-    outroRenderer.setSize(window.innerWidth, window.innerHeight);
-  });
 }
 
 /**
@@ -489,104 +347,39 @@ function setupOutroScene(): void {
 function setupGiftScene(): void {
   const giftScene = new THREE.Scene();
   const giftCamera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-  const giftRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+  const giftRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 
-  giftRenderer.setClearColor(0x000000, 0);
   giftRenderer.setSize(window.innerWidth, window.innerHeight);
-  giftRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-  const giftContainer = document.querySelector(".gift-model-container");
-  if (giftContainer) {
-    giftContainer.appendChild(giftRenderer.domElement);
-    (giftContainer as HTMLElement).style.opacity = "0";
-    (giftContainer as HTMLElement).style.visibility = "hidden";
-  }
+  const container = document.querySelector(".gift-model-container");
+  if (container) container.appendChild(giftRenderer.domElement);
 
   giftScene.add(new THREE.AmbientLight(0xfce7f3, 1.5));
-  const giftKey = new THREE.DirectionalLight(0xf472b6, 2);
-  giftKey.position.set(5, 5, 5);
-  giftScene.add(giftKey);
-  giftScene.add(new THREE.DirectionalLight(0xec4899, 1.2));
-  giftScene.add(new THREE.DirectionalLight(0xfce7f3, 0.8));
-
-  const giftLoader = new GLTFLoader();
-  giftLoader.load("/models/gift.glb", (gltf) => {
+  const loader = new GLTFLoader();
+  loader.load("/models/gift.glb", (gltf) => {
     giftModel = gltf.scene;
-
-    giftModel.traverse((n: any) => {
-      if (n.isMesh && n.material) {
-        n.material.metalness = 0.4;
-        n.material.roughness = 0.4;
-      }
-    });
-
     const box = new THREE.Box3().setFromObject(giftModel);
-    const giftSize = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     giftModel.position.set(-center.x, -center.y, -center.z);
-
-    const maxDim = Math.max(giftSize.x, giftSize.y, giftSize.z);
-    const fov = giftCamera.fov * Math.PI / 180;
-    giftCamera.position.z = (maxDim / Math.tan(fov / 2)) * 1.8;
-    giftCamera.lookAt(0, 0, 0);
-
     giftScene.add(giftModel);
-    setupYesButtonInteraction();
+    giftCamera.position.z = 5;
+
+    // "Yes" Button Logic
+    document.querySelector(".btn-yes")?.addEventListener("click", () => {
+      ScrollTrigger.getAll().forEach(st => st.kill());
+      gsap.to(".outro-model-container", { opacity: 0, autoAlpha: 0 });
+      gsap.set(".gift-model-container", { visibility: "visible", opacity: 1 });
+      
+      const tl = gsap.timeline({ onComplete: () => window.location.href = "/gift" });
+      tl.to(giftModel.rotation, { y: Math.PI * 4, duration: 3, ease: "none" })
+        .to(giftModel.scale, { x: 8, y: 8, z: 8, duration: 2 }, "-=1");
+    });
   });
 
-  function animate(): void {
+  function animate() {
     requestAnimationFrame(animate);
     giftRenderer.render(giftScene, giftCamera);
   }
   animate();
-
-  window.addEventListener("resize", () => {
-    giftCamera.aspect = window.innerWidth / window.innerHeight;
-    giftCamera.updateProjectionMatrix();
-    giftRenderer.setSize(window.innerWidth, window.innerHeight);
-  });
-
-  function setupYesButtonInteraction(): void {
-    const yesBtn = document.querySelector(".btn-yes");
-    if (yesBtn) {
-      yesBtn.addEventListener("click", () => {
-        if (!giftModel) return;
-
-        ScrollTrigger.getAll().forEach((st: any) => st.kill());
-
-        const outroContainer = document.querySelector(".outro-model-container") as HTMLElement;
-        const giftContainer = document.querySelector(".gift-model-container") as HTMLElement;
-
-        gsap.to(outroContainer, {
-          opacity: 0,
-          duration: 0.5,
-          onComplete: () => { outroContainer.style.visibility = "hidden"; }
-        });
-
-        giftContainer.style.visibility = "visible";
-        gsap.to(giftContainer, { opacity: 1, duration: 0.8, ease: "power2.out" });
-
-        const baseScale = isMobile() ? 0.8 : 1;
-        gsap.set(giftModel.scale, { x: baseScale, y: baseScale, z: baseScale });
-        gsap.set(giftModel.rotation, { x: 0, y: 0, z: 0 });
-
-        const idleSpin = gsap.to(giftModel.rotation, { y: "+=0.5", duration: 2, repeat: -1, yoyo: true, ease: "sine.inOut" });
-
-        gsap.timeline({
-          onStart: () => { idleSpin.kill(); },
-          onComplete: () => { window.location.href = "/gift"; }
-        })
-        .to(giftModel.rotation, { y: Math.PI * 4, duration: 3, ease: "none" })
-        .to(giftModel.scale, {
-          x: isMobile() ? 6.5 : 8.5,
-          y: isMobile() ? 6.5 : 8.5,
-          z: isMobile() ? 6.5 : 8.5,
-          duration: 2,
-          ease: "power2.inOut"
-        }, "-=1");
-      });
-    }
-  }
 }
 
 /**
@@ -594,224 +387,76 @@ function setupGiftScene(): void {
  */
 function initNoButtonEscape(): void {
   const noBtn = document.querySelector(".btn-no") as HTMLElement;
-  const yesBtn = document.querySelector(".btn-yes") as HTMLElement;
-  if (!noBtn || !yesBtn) return;
+  if (!noBtn) return;
 
-  const yesRect = yesBtn.getBoundingClientRect();
-  noBtn.style.left = `${yesRect.right + 40}px`;
-  noBtn.style.top = `${yesRect.top}px`;
-
-  function moveNoButton(): void {
-    const padding = 20;
-    const btnRect = noBtn.getBoundingClientRect();
-    const maxX = window.innerWidth - btnRect.width - padding;
-    const maxY = window.innerHeight - btnRect.height - padding;
+  const moveNoButton = () => {
+    const maxX = window.innerWidth - noBtn.offsetWidth - 20;
+    const maxY = window.innerHeight - noBtn.offsetHeight - 20;
     const x = Math.random() * maxX;
     const y = Math.random() * maxY;
-    const rotation = Math.random() * 120 - 60;
-    const scale = 0.85 + Math.random() * 0.6;
-
+    noBtn.style.position = 'fixed';
     noBtn.style.left = `${x}px`;
     noBtn.style.top = `${y}px`;
-    noBtn.style.transform = `rotate(${rotation}deg) scale(${scale})`;
-  }
+    noBtn.style.transform = `rotate(${Math.random() * 40 - 20}deg)`;
+  };
 
   noBtn.addEventListener("mouseenter", moveNoButton);
   noBtn.addEventListener("touchstart", (e) => {
     e.preventDefault();
     moveNoButton();
-    setTimeout(moveNoButton, 120);
   });
-
-  if (!isMobile()) {
-    document.addEventListener("mousemove", (e) => {
-      const rect = noBtn.getBoundingClientRect();
-      const dx = e.clientX - (rect.left + rect.width / 2);
-      const dy = e.clientY - (rect.top + rect.height / 2);
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance < 120) moveNoButton();
-    });
-  }
 }
 
 /**
- * Initialize Audio Visualizer - Uses audioManager for persistent audio
+ * Audio Visualizer
  */
 function initAudioVisualizer(): void {
   const canvas = document.getElementById('visualizer-canvas') as HTMLCanvasElement;
-  
   if (!canvas) return;
-
   const ctx = canvas.getContext('2d')!;
   let animationId: number;
 
-  function resizeCanvas() {
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * window.devicePixelRatio;
-    canvas.height = rect.height * window.devicePixelRatio;
+  const resize = () => {
+    canvas.width = canvas.clientWidth * window.devicePixelRatio;
+    canvas.height = canvas.clientHeight * window.devicePixelRatio;
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  }
+  };
+  resize();
+  window.addEventListener('resize', resize);
 
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
-
-  // Initialize audio context through audioManager
   audioManager.initAudioContext();
 
-  function drawVisualizer() {
-    animationId = requestAnimationFrame(drawVisualizer);
+  function draw() {
+    animationId = requestAnimationFrame(draw);
+    const w = canvas.width / window.devicePixelRatio;
+    const h = canvas.height / window.devicePixelRatio;
+    ctx.fillStyle = 'rgba(0,0,0,1)';
+    ctx.fillRect(0,0,w,h);
 
-    const width = canvas.width / window.devicePixelRatio;
-    const height = canvas.height / window.devicePixelRatio;
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 1)';
-    ctx.fillRect(0, 0, width, height);
-
-    // Get audio data from audioManager
-    if (!audioManager.hasAnalyser()) {
-      drawIdle();
-      return;
-    }
-
-    const dataArray = audioManager.getAnalyserData();
-    if (!dataArray) {
-      drawIdle();
-      return;
-    }
-
-    const bufferLength = audioManager.getBufferLength();
-    const barCount = 50;
-    const barWidth = width / barCount;
-    const gap = 1.5;
-
-    for (let i = 0; i < barCount; i++) {
-      const percent = i / barCount;
-      const exponentialPercent = Math.pow(percent, 1.5);
-      const dataIndex = Math.floor(exponentialPercent * bufferLength * 0.7);
-      let value = dataArray[dataIndex];
-
-      if (i < barCount * 0.2) value *= 1.3;
-      else if (i < barCount * 0.6) value *= 1.5;
-      else value *= 1.2;
-
-      const normalizedValue = Math.min(value / 255, 1);
-      const barHeight = normalizedValue * height * 0.85;
-
-      const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height);
-      if (normalizedValue > 0.7) {
-        gradient.addColorStop(0, '#fbbf24');
-        gradient.addColorStop(0.3, '#f472b6');
-        gradient.addColorStop(0.6, '#ec4899');
-        gradient.addColorStop(1, '#db2777');
-      } else if (normalizedValue > 0.4) {
-        gradient.addColorStop(0, '#f9a8d4');
-        gradient.addColorStop(0.5, '#ec4899');
-        gradient.addColorStop(1, '#db2777');
-      } else {
-        gradient.addColorStop(0, '#f472b6');
-        gradient.addColorStop(0.5, '#ec4899');
-        gradient.addColorStop(1, '#be185d');
-      }
-
-      ctx.fillStyle = gradient;
-      const x = i * barWidth;
-      const y = height - barHeight;
-      const actualBarWidth = barWidth - gap;
-
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = normalizedValue > 0.6 ? 'rgba(236, 72, 153, 0.8)' : 'rgba(236, 72, 153, 0.4)';
-
-      ctx.beginPath();
-      ctx.roundRect(x, y, actualBarWidth, barHeight, [3, 3, 0, 0]);
-      ctx.fill();
-
-      if (barHeight > height * 0.3) {
-        ctx.shadowBlur = 0;
-        const reflectionGradient = ctx.createLinearGradient(0, height, 0, height - 8);
-        reflectionGradient.addColorStop(0, 'rgba(236, 72, 153, 0.3)');
-        reflectionGradient.addColorStop(1, 'rgba(236, 72, 153, 0)');
-        ctx.fillStyle = reflectionGradient;
-        ctx.fillRect(x, height - 8, actualBarWidth, 8);
-      }
-
-      ctx.shadowBlur = 0;
-    }
-
-    const centerGlow = ctx.createRadialGradient(width/2, height, 0, width/2, height, width/2);
-    centerGlow.addColorStop(0, 'rgba(236, 72, 153, 0.1)');
-    centerGlow.addColorStop(1, 'rgba(236, 72, 153, 0)');
-    ctx.fillStyle = centerGlow;
-    ctx.fillRect(0, 0, width, height);
-  }
-
-  function drawIdle() {
-    const width = canvas.width / window.devicePixelRatio;
-    const height = canvas.height / window.devicePixelRatio;
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-    ctx.fillRect(0, 0, width, height);
-
-    const barCount = 50;
-    const barWidth = width / barCount;
-    const gap = 1.5;
-    const time = Date.now() * 0.0015;
-
-    for (let i = 0; i < barCount; i++) {
-      const wave1 = Math.sin(time + i * 0.2) * 6;
-      const wave2 = Math.sin(time * 1.5 + i * 0.15) * 4;
-      const wave3 = Math.sin(time * 0.8 + i * 0.25) * 3;
-      const waveHeight = wave1 + wave2 + wave3 + 15;
-
-      const gradient = ctx.createLinearGradient(0, height - waveHeight, 0, height);
-      gradient.addColorStop(0, 'rgba(244, 114, 182, 0.5)');
-      gradient.addColorStop(0.5, 'rgba(236, 72, 153, 0.4)');
-      gradient.addColorStop(1, 'rgba(219, 39, 119, 0.5)');
-
-      ctx.fillStyle = gradient;
-      const x = i * barWidth;
-      const y = height - waveHeight;
-      const actualBarWidth = barWidth - gap;
-
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = 'rgba(236, 72, 153, 0.3)';
-
-      ctx.beginPath();
-      ctx.roundRect(x, y, actualBarWidth, waveHeight, [3, 3, 0, 0]);
-      ctx.fill();
-
-      ctx.shadowBlur = 0;
-    }
-
-    const ambientGlow = ctx.createRadialGradient(width/2, height, 0, width/2, height, width/2);
-    ambientGlow.addColorStop(0, 'rgba(236, 72, 153, 0.08)');
-    ambientGlow.addColorStop(1, 'rgba(236, 72, 153, 0)');
-    ctx.fillStyle = ambientGlow;
-    ctx.fillRect(0, 0, width, height);
-  }
-
-  // Listen for audio state changes
-  function handleAudioStateChange(e: any) {
-    if (e.detail.isPlaying) {
-      cancelAnimationFrame(animationId);
-      drawVisualizer();
+    if (!audioManager.getIsPlaying()) {
+      drawIdle(w, h);
     } else {
-      cancelAnimationFrame(animationId);
-      animationId = requestAnimationFrame(function loop() {
-        drawIdle();
-        animationId = requestAnimationFrame(loop);
-      });
+      const data = audioManager.getAnalyserData();
+      if (!data) return;
+      const barCount = 50;
+      const barWidth = w / barCount;
+      for (let i = 0; i < barCount; i++) {
+        const val = data[i] / 255;
+        const barH = val * h * 0.8;
+        ctx.fillStyle = '#ec4899';
+        ctx.fillRect(i * barWidth, h - barH, barWidth - 2, barH);
+      }
     }
   }
 
-  window.addEventListener('audioStateChange', handleAudioStateChange);
-
-  // Start with idle or visualizer based on current state
-  if (audioManager.getIsPlaying()) {
-    drawVisualizer();
-  } else {
-    animationId = requestAnimationFrame(function loop() {
-      drawIdle();
-      animationId = requestAnimationFrame(loop);
-    });
+  function drawIdle(w: number, h: number) {
+    const time = Date.now() * 0.002;
+    for (let i = 0; i < 50; i++) {
+      const barH = 10 + Math.sin(time + i * 0.2) * 5;
+      ctx.fillStyle = 'rgba(236, 72, 153, 0.4)';
+      ctx.fillRect(i * (w/50), h - barH, (w/50) - 2, barH);
+    }
   }
+
+  draw();
 }
