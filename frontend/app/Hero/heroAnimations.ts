@@ -395,7 +395,8 @@ const scrollTL = gsap.timeline({
  */
 function setupOutroScene(): void {
   // 🛑 Mobile safety
-  if (isMobile()) return;
+ const isMobileView = isMobile();
+
 
   let outroHeart: any = null;
   let outroModelSize: any = null;
@@ -409,15 +410,20 @@ function setupOutroScene(): void {
     1000
   );
 
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    alpha: true,
-    powerPreference: "high-performance"
-  });
+const renderer = new THREE.WebGLRenderer({
+  antialias: !isMobileView,
+  alpha: true,
+  powerPreference: isMobileView ? "low-power" : "high-performance"
+});
+
+renderer.setPixelRatio(isMobileView ? 1 : Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = !isMobileView;
+const maxScale = isMobileView ? 4.5 : 8.5;
+
 
   renderer.setClearColor(0x000000, 0);
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+ 
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -507,7 +513,7 @@ function setupOutroScene(): void {
 
   if (p > zoomStart) {
     const t = Math.min((p - zoomStart) / (zoomEnd - zoomStart), 1);
-    const scale = gsap.utils.interpolate(1, 8.5, t);
+   const scale = gsap.utils.interpolate(1, maxScale, t);
 
     heart.scale.set(scale, scale, scale);
     heart.position.y = -(outroModelSize.y * (scale - 1)) / 2;
@@ -632,7 +638,8 @@ onLeaveBack: () => {
  */
 function setupGiftScene(): void {
   // 🛑 Mobile safety (same strategy as Outro)
-  if (isMobile()) return;
+const isMobileView = isMobile();
+
 
   let giftModel: any = null;
 
@@ -644,11 +651,15 @@ function setupGiftScene(): void {
     1000
   );
 
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    alpha: true,
-    powerPreference: "high-performance"
-  });
+const renderer = new THREE.WebGLRenderer({
+  antialias: !isMobileView,
+  alpha: true,
+  powerPreference: isMobileView ? "low-power" : "high-performance"
+});
+
+renderer.setPixelRatio(isMobileView ? 1 : Math.min(window.devicePixelRatio, 2));
+const maxGiftScale = isMobileView ? 4.5 : 8.5;
+
 
   renderer.setClearColor(0x000000, 0);
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -753,17 +764,18 @@ function setupGiftScene(): void {
         }
       })
         .to(giftModel.rotation, { y: Math.PI * 4, duration: 3, ease: "none" })
-        .to(
-          giftModel.scale,
-          {
-            x: 8.5,
-            y: 8.5,
-            z: 8.5,
-            duration: 2,
-            ease: "power2.inOut"
-          },
-          "-=1"
-        );
+      .to(
+  giftModel.scale,
+  {
+    x: maxGiftScale,
+    y: maxGiftScale,
+    z: maxGiftScale,
+    duration: 2,
+    ease: "power2.inOut"
+  },
+  "-=1"
+);
+
     });
   }
 
